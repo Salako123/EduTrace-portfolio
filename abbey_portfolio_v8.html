@@ -105,7 +105,7 @@ h1.hero-title em{font-style:italic;color:var(--gold)}
 .hero-sub{color:#c2bfb8;font-size:1.05rem;max-width:38ch;line-height:1.85;margin-bottom:2.4rem}
 .hero-btns{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:3rem}
 .hero-stats{display:flex;gap:3rem}
-.stat-num{font-family:var(--serif);font-size:2.4rem;font-weight:300;color:#d4aa52;line-height:1}
+.stat-num{font-family:var(--serif);font-size:clamp(1.6rem,5vw,2.4rem);font-weight:300;color:#d4aa52;line-height:1}
 .stat-label{font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2rem}
 /* Hero visual — stacked cards */
 .hero-visual{display:flex;align-items:center;justify-content:center}
@@ -339,7 +339,14 @@ footer{background:var(--bg2);border-top:1px solid var(--border2)}
   .nav-links,.nav-cta{display:none}
   .nav-hamburger{display:flex}
   section{padding:5rem 1.5rem}
-  #hero{padding:7rem 1.5rem 5rem}
+  #hero{padding:5rem 1.5rem 3.5rem;min-height:auto}
+  .hero-content{width:100%;padding:0}
+  .hero-grid{gap:2rem}
+  h1.hero-title{font-size:clamp(2.4rem,8vw,3.5rem)}
+  .hero-sub{max-width:100%;font-size:0.95rem}
+  .hero-btns{gap:0.75rem}
+  .hero-stats{gap:1.5rem}
+  .hero-visual{margin-top:1.5rem}
   #trust{padding:2rem 1.5rem}
   .hero-grid,.about-grid,.ph-grid,.cbt-grid,.ds-grid,.contact-grid{grid-template-columns:1fr}
   .hero-card-stack{max-width:100%;min-height:180px}
@@ -548,7 +555,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border2)}
 #ui-scroller::before,#ui-scroller::after{content:'';position:absolute;top:0;bottom:0;width:18rem;z-index:10;pointer-events:none}
 #ui-scroller::before{left:0;background:linear-gradient(90deg,var(--bg) 0%,rgba(11,12,16,0.6) 70%,transparent 100%)}
 #ui-scroller::after{right:0;background:linear-gradient(270deg,var(--bg) 0%,rgba(11,12,16,0.6) 70%,transparent 100%)}
-.ui-scroller-head{max-width:1200px;margin:0 auto 3rem;padding:0 4rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}
+.ui-scroller-head{max-width:1200px;margin:0 auto 3rem;padding:0 1.5rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}
 .ui-scroller-head h2{font-family:var(--serif);font-size:clamp(1.6rem,3vw,2.6rem);font-weight:300;color:#fff;line-height:1.2}
 .ui-scroller-head h2 em{font-style:italic;color:var(--gold)}
 .ui-scroller-sub{font-size:0.8rem;color:#a8a5a0;letter-spacing:0.06em;max-width:28ch;text-align:right;line-height:1.65}
