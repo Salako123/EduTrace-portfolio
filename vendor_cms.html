@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EduTrace — Vendor CMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0b0c10; --bg2:#13141a; --bg3:#1a1b23; --bg4:#20212c; --bg5:#262733;
+  --gold:#c9a84c; --gold2:#e8c97a; --gold-dim:rgba(201,168,76,0.12);
+  --indigo:#818cf8; --teal:#5eead4; --rose:#fb7185; --green:#34d399;
+  --text:#e8e6df; --muted:#8a8880; --subtle:#55534f;
+  --border:rgba(201,168,76,0.15); --border2:rgba(255,255,255,0.06);
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --radius:4px; --radius-lg:8px;
+  --sidebar:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);position:relative}
+#login-screen::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--border2) 1px,transparent 1px),linear-gradient(90deg,var(--border2) 1px,transparent 1px);background-size:60px 60px;opacity:0.4;pointer-events:none}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:3rem 2.5rem;width:100%;max-width:400px;position:relative;z-index:1;box-shadow:0 24px 80px rgba(0,0,0,0.6)}
+.login-logo{font-family:var(--serif);font-size:1.6rem;font-weight:300;color:var(--gold);letter-spacing:0.12em;text-align:center;margin-bottom:0.3rem}
+.login-sub{font-size:0.72rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--subtle);text-align:center;margin-bottom:2.5rem}
+.login-card label{display:block;font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;margin-top:1.2rem}
+.login-card input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:0.7rem 0.9rem;color:var(--text);font-family:var(--sans);font-size:0.88rem;outline:none;transition:border-color 0.2s}
+.login-card input:focus{border-color:rgba(201,168,76,0.4)}
+.btn-login{width:100%;margin-top:1.8rem;background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius);padding:0.78rem;font-family:var(--sans);font-size:0.82rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:background 0.2s}
+.btn-login:hover{background:var(--gold2)}
+.login-error{margin-top:1rem;font-size:0.78rem;color:var(--rose);text-align:center;min-height:1rem}
+
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;overflow:hidden}
+.app-layout{display:grid;grid-template-columns:var(--sidebar) 1fr;height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-header{padding:1.5rem 1.4rem 1rem;border-bottom:1px solid var(--border2)}
+.sidebar-logo{font-family:var(--serif);font-size:1.25rem;font-weight:300;color:var(--gold);letter-spacing:0.1em}
+.sidebar-tagline{font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--subtle);margin-top:0.2rem}
+.sidebar-nav{flex:1;padding:1rem 0}
+.nav-section-label{font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--subtle);padding:0.75rem 1.4rem 0.35rem;margin-top:0.5rem}
+.nav-item{display:flex;align-items:center;gap:0.7rem;padding:0.62rem 1.4rem;font-size:0.82rem;color:var(--muted);cursor:pointer;transition:all 0.18s;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.03)}
+.nav-item.active{color:var(--gold);background:var(--gold-dim);border-left-color:var(--gold)}
+.nav-item-icon{font-size:1rem;width:1.2rem;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--rose);color:#fff;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:10px;font-weight:500}
+.sidebar-footer{padding:1rem 1.4rem;border-top:1px solid var(--border2)}
+.vendor-info{font-size:0.72rem;color:var(--subtle);margin-bottom:0.6rem}
+.vendor-email{color:var(--muted);font-weight:500}
+.btn-logout{width:100%;background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:0.5rem;color:var(--muted);font-family:var(--sans);font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+.btn-logout:hover{border-color:var(--rose);color:var(--rose)}
+
+/* ── MAIN CONTENT ── */
+.main-content{overflow-y:auto;background:var(--bg)}
+.page-header{padding:2rem 2.5rem 1.5rem;border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--bg);z-index:10;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.page-title{font-family:var(--serif);font-size:1.7rem;font-weight:300;color:#fff}
+.page-title span{color:var(--gold);font-style:italic}
+.page-actions{display:flex;gap:0.6rem;align-items:center}
+.btn-save{background:var(--gold);color:var(--bg);border:none;border-radius:var(--radius);padding:0.5rem 1.3rem;font-family:var(--sans);font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:background 0.2s}
+.btn-save:hover{background:var(--gold2)}
+.btn-save:disabled{opacity:0.4;cursor:not-allowed}
+.btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--border2);border-radius:var(--radius);padding:0.5rem 1.1rem;font-family:var(--sans);font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:all 0.2s}
+.btn-secondary:hover{color:var(--text);border-color:rgba(255,255,255,0.15)}
+.page-body{padding:2rem 2.5rem}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:2rem;right:2rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none}
+.toast-item{background:var(--bg4);border:1px solid var(--border2);border-radius:var(--radius);padding:0.75rem 1.1rem;font-size:0.8rem;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:toastIn 0.25s ease;display:flex;align-items:center;gap:0.6rem}
+.toast-item.success{border-color:rgba(52,211,153,0.3);color:#34d399}
+.toast-item.error{border-color:rgba(251,113,133,0.3);color:var(--rose)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PANELS ── */
+.panel{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);margin-bottom:1.5rem}
+.panel-head{padding:1rem 1.4rem;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.panel-title{font-size:0.78rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:0.5rem}
+.panel-title-icon{color:var(--gold)}
+.panel-body{padding:1.4rem}
+
+/* ── FORM ELEMENTS ── */
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:0.7rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem}
+.field input,.field textarea,.field select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:0.62rem 0.8rem;color:var(--text);font-family:var(--sans);font-size:0.85rem;outline:none;transition:border-color 0.2s;resize:vertical}
+.field textarea{min-height:80px;line-height:1.6}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(201,168,76,0.35)}
+.field select option{background:var(--bg3)}
+.field-hint{font-size:0.68rem;color:var(--subtle);margin-top:0.3rem}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+
+/* ── TOGGLE ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border2)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{flex:1}
+.toggle-label{font-size:0.82rem;color:var(--text)}
+.toggle-desc{font-size:0.68rem;color:var(--subtle);margin-top:0.15rem}
+.toggle-switch{position:relative;width:38px;height:20px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;background:var(--bg4);border:1px solid var(--border2);border-radius:20px;cursor:pointer;transition:all 0.2s}
+.toggle-track::after{content:'';position:absolute;left:3px;top:50%;transform:translateY(-50%);width:12px;height:12px;border-radius:50%;background:var(--subtle);transition:all 0.2s}
+.toggle-switch input:checked+.toggle-track{background:rgba(201,168,76,0.2);border-color:rgba(201,168,76,0.4)}
+.toggle-switch input:checked+.toggle-track::after{left:21px;background:var(--gold)}
+
+/* ── TABLE ── */
+.cms-table{width:100%;border-collapse:collapse}
+.cms-table th{font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtle);padding:0.6rem 0.75rem;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap}
+.cms-table td{font-size:0.82rem;color:var(--muted);padding:0.7rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:top}
+.cms-table td.white{color:var(--text)}
+.cms-table tr:hover td{background:rgba(255,255,255,0.015)}
+.cms-table .actions{display:flex;gap:0.4rem}
+.btn-icon{background:transparent;border:1px solid var(--border2);border-radius:var(--radius);padding:0.3rem 0.55rem;font-size:0.7rem;color:var(--muted);cursor:pointer;transition:all 0.18s;white-space:nowrap}
+.btn-icon:hover{color:var(--gold);border-color:rgba(201,168,76,0.3)}
+.btn-icon.danger:hover{color:var(--rose);border-color:rgba(251,113,133,0.3)}
+.status-badge{display:inline-block;padding:0.18rem 0.55rem;border-radius:3px;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500}
+.status-badge.new{background:rgba(129,140,248,0.1);color:var(--indigo);border:1px solid rgba(129,140,248,0.2)}
+.status-badge.read{background:rgba(255,255,255,0.04);color:var(--subtle);border:1px solid var(--border2)}
+.status-badge.replied{background:rgba(52,211,153,0.08);color:#34d399;border:1px solid rgba(52,211,153,0.2)}
+.status-badge.archived{background:rgba(251,113,133,0.08);color:var(--rose);border:1px solid rgba(251,113,133,0.2)}
+
+/* ── MODAL ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modal-overlay.open{display:flex}
+.modal-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:2rem;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;position:relative}
+.modal-title{font-family:var(--serif);font-size:1.4rem;font-weight:300;color:#fff;margin-bottom:1.5rem}
+.modal-actions{display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border2)}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:1.25rem 1.4rem}
+.stat-card-num{font-family:var(--serif);font-size:1.9rem;font-weight:300;color:var(--gold);line-height:1}
+.stat-card-lbl{font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--subtle);margin-top:0.25rem}
+.stat-card-change{font-size:0.72rem;color:#34d399;margin-top:0.3rem}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:3rem;color:var(--subtle)}
+.empty-state-icon{font-size:2rem;margin-bottom:0.75rem}
+.empty-state-text{font-size:0.82rem}
+
+/* ── LOADING ── */
+.loading-row td{text-align:center;padding:2rem;color:var(--subtle);font-size:0.8rem}
+
+/* ── PAGES ── */
+.cms-page{display:none}
+.cms-page.active{display:block}
+
+/* ── SECTION ORDERING ── */
+.section-drag-item{display:flex;align-items:center;gap:1rem;padding:0.75rem 0;border-bottom:1px solid var(--border2);cursor:grab}
+.section-drag-item:last-child{border-bottom:none}
+.section-drag-handle{color:var(--subtle);font-size:1rem;cursor:grab}
+.section-drag-label{font-size:0.85rem;color:var(--text);flex:1}
+.section-drag-id{font-size:0.65rem;color:var(--subtle);letter-spacing:0.08em}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .app-layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .field-row,.field-row-3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">EduTrace</div>
+    <div class="login-sub">Vendor CMS · Secure Access</div>
+    <label for="login-email">Email Address</label>
+    <input type="email" id="login-email" placeholder="vendor@edutrace.ng" autocomplete="email"/>
+    <label for="login-password">Password</label>
+    <input type="password" id="login-password" placeholder="••••••••••" autocomplete="current-password"/>
+    <button class="btn-login" onclick="handleLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════ -->
+<div id="app">
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">EduTrace</div>
+        <div class="sidebar-tagline">Vendor CMS</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+          <span class="nav-item-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-section-label">Website Content</div>
+        <div class="nav-item" onclick="showPage('hero')" data-page="hero">
+          <span class="nav-item-icon">🏠</span> Hero & Stats
+        </div>
+        <div class="nav-item" onclick="showPage('products')" data-page="products">
+          <span class="nav-item-icon">📦</span> Products
+        </div>
+        <div class="nav-item" onclick="showPage('features')" data-page="features">
+          <span class="nav-item-icon">✅</span> Feature Lists
+        </div>
+        <div class="nav-item" onclick="showPage('testimonials')" data-page="testimonials">
+          <span class="nav-item-icon">💬</span> Testimonials
+        </div>
+        <div class="nav-item" onclick="showPage('about')" data-page="about">
+          <span class="nav-item-icon">👤</span> About & Bio
+        </div>
+        <div class="nav-item" onclick="showPage('contact')" data-page="contact">
+          <span class="nav-item-icon">📞</span> Contact Info
+        </div>
+        <div class="nav-section-label">Visibility</div>
+        <div class="nav-item" onclick="showPage('sections')" data-page="sections">
+          <span class="nav-item-icon">🔧</span> Section Controls
+        </div>
+        <div class="nav-section-label">Enquiries</div>
+        <div class="nav-item" onclick="showPage('enquiries')" data-page="enquiries">
+          <span class="nav-item-icon">📩</span> Enquiries
+          <span class="nav-badge" id="enquiry-badge" style="display:none">0</span>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="vendor-info">Logged in as<br/><span class="vendor-email" id="vendor-email">—</span></div>
+        <button class="btn-logout" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- DASHBOARD -->
+      <div class="cms-page active" id="page-dashboard">
+        <div class="page-header">
+          <div class="page-title">Dashboard <span>Overview</span></div>
+          <div class="page-actions">
+            <a href="abbey_portfolio_v8.html" target="_blank"><button class="btn-secondary">View Portfolio ↗</button></a>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="stats-grid" id="dash-stats">
+            <div class="stat-card"><div class="stat-card-num" id="ds-enquiries">—</div><div class="stat-card-lbl">Total Enquiries</div><div class="stat-card-change" id="ds-new-enq"></div></div>
+            <div class="stat-card"><div class="stat-card-num" id="ds-testimonials">—</div><div class="stat-card-lbl">Testimonials</div></div>
+            <div class="stat-card"><div class="stat-card-num" id="ds-features">—</div><div class="stat-card-lbl">Feature Items</div></div>
+            <div class="stat-card"><div class="stat-card-num" id="ds-products">—</div><div class="stat-card-lbl">Products Listed</div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">📩</span> Recent Enquiries</div><button class="btn-secondary" onclick="showPage('enquiries')">View All</button></div>
+            <div class="panel-body" style="padding:0">
+              <table class="cms-table" id="dash-enquiries-table">
+                <thead><tr><th>Name</th><th>School</th><th>Product</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody id="dash-enquiries-body"><tr class="loading-row"><td colspan="5">Loading...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HERO PAGE -->
+      <div class="cms-page" id="page-hero">
+        <div class="page-header">
+          <div class="page-title">Hero <span>& Stats</span></div>
+          <div class="page-actions"><button class="btn-save" onclick="saveConfig('hero')">Save Changes</button></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">✏️</span> Hero Text</div></div>
+            <div class="panel-body">
+              <div class="field"><label>Eyebrow Text (small line above headline)</label><input type="text" id="cfg-hero_eyebrow"/></div>
+              <div class="field-row">
+                <div class="field"><label>Headline — Line 1</label><input type="text" id="cfg-hero_title_line1"/></div>
+                <div class="field"><label>Headline — Line 2</label><input type="text" id="cfg-hero_title_line2"/></div>
+              </div>
+              <div class="field"><label>Headline — Accent Word (in gold italic)</label><input type="text" id="cfg-hero_title_accent"/></div>
+              <div class="field"><label>Subtitle Paragraph</label><textarea id="cfg-hero_subtitle"></textarea></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">🔗</span> Call-to-Action Buttons</div></div>
+            <div class="panel-body">
+              <div class="field-row">
+                <div class="field"><label>Primary Button Text</label><input type="text" id="cfg-cta_primary_text"/></div>
+                <div class="field"><label>Primary Button URL</label><input type="url" id="cfg-cta_primary_url" placeholder="https://wa.me/..."/></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label>Secondary Button Text</label><input type="text" id="cfg-cta_secondary_text"/></div>
+                <div class="field"><label>Secondary Button URL</label><input type="url" id="cfg-cta_secondary_url"/></div>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">📈</span> Hero Stats</div></div>
+            <div class="panel-body">
+              <div class="field-row-3">
+                <div class="field"><label>Schools Deployed</label><input type="text" id="cfg-stat_schools" placeholder="40+"/></div>
+                <div class="field"><label>Students Managed</label><input type="text" id="cfg-stat_students" placeholder="12K+"/></div>
+                <div class="field"><label>Reports Generated</label><input type="text" id="cfg-stat_reports" placeholder="98K+"/></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS PAGE -->
+      <div class="cms-page" id="page-products">
+        <div class="page-header">
+          <div class="page-title">Products <span>Management</span></div>
+          <div class="page-actions"><button class="btn-save" onclick="saveProducts()">Save Changes</button></div>
+        </div>
+        <div class="page-body" id="products-body">
+          <div style="color:var(--subtle);text-align:center;padding:2rem">Loading products...</div>
+        </div>
+      </div>
+
+      <!-- FEATURES PAGE -->
+      <div class="cms-page" id="page-features">
+        <div class="page-header">
+          <div class="page-title">Feature <span>Lists</span></div>
+          <div class="page-actions">
+            <select id="features-product-select" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:0.45rem 0.7rem;color:var(--text);font-family:var(--sans);font-size:0.78rem;outline:none" onchange="loadFeatures()">
+              <option value="rc">Report Card (RC)</option>
+              <option value="cbt">CBT Platform</option>
+            </select>
+            <button class="btn-secondary" onclick="openAddFeatureModal()">+ Add Feature</button>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">✅</span> Features — <span id="features-product-label">Report Card</span></div></div>
+            <div class="panel-body" style="padding:0">
+              <table class="cms-table">
+                <thead><tr><th>#</th><th>Feature Text</th><th>Visible</th><th>Actions</th></tr></thead>
+                <tbody id="features-tbody"><tr class="loading-row"><td colspan="4">Loading...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TESTIMONIALS PAGE -->
+      <div class="cms-page" id="page-testimonials">
+        <div class="page-header">
+          <div class="page-title">Testimonials <span>Management</span></div>
+          <div class="page-actions"><button class="btn-secondary" onclick="openAddTestimonialModal()">+ Add Testimonial</button></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">💬</span> All Testimonials</div></div>
+            <div class="panel-body" style="padding:0">
+              <table class="cms-table">
+                <thead><tr><th>Author</th><th>School</th><th>Product</th><th>Rating</th><th>Visible</th><th>Actions</th></tr></thead>
+                <tbody id="testimonials-tbody"><tr class="loading-row"><td colspan="6">Loading...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABOUT PAGE -->
+      <div class="cms-page" id="page-about">
+        <div class="page-header">
+          <div class="page-title">About <span>& Bio</span></div>
+          <div class="page-actions"><button class="btn-save" onclick="saveConfig('about')">Save Changes</button></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">👤</span> About Section</div></div>
+            <div class="panel-body">
+              <div class="field"><label>Your Display Name</label><input type="text" id="cfg-about_name"/></div>
+              <div class="field"><label>Bio Paragraph</label><textarea id="cfg-about_bio" style="min-height:120px"></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTACT PAGE -->
+      <div class="cms-page" id="page-contact">
+        <div class="page-header">
+          <div class="page-title">Contact <span>Info</span></div>
+          <div class="page-actions"><button class="btn-save" onclick="saveConfig('contact')">Save Changes</button></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">📞</span> Contact Details</div></div>
+            <div class="panel-body">
+              <div class="field"><label>WhatsApp URL</label><input type="url" id="cfg-contact_whatsapp" placeholder="https://wa.me/234..."/><div class="field-hint">Full WhatsApp link — https://wa.me/2347065933261</div></div>
+              <div class="field"><label>Contact Email</label><input type="email" id="cfg-contact_email"/></div>
+              <div class="field"><label>Footer Copyright Text</label><input type="text" id="cfg-footer_copy"/></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTIONS VISIBILITY PAGE -->
+      <div class="cms-page" id="page-sections">
+        <div class="page-header">
+          <div class="page-title">Section <span>Controls</span></div>
+          <div class="page-actions"><button class="btn-save" onclick="saveSections()">Save Changes</button></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">🔧</span> Toggle Page Sections</div></div>
+            <div class="panel-body" id="sections-toggles">
+              <div style="color:var(--subtle);text-align:center;padding:1rem">Loading sections...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENQUIRIES PAGE -->
+      <div class="cms-page" id="page-enquiries">
+        <div class="page-header">
+          <div class="page-title">Enquiries <span>Inbox</span></div>
+          <div class="page-actions">
+            <select id="enq-filter" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:0.45rem 0.7rem;color:var(--text);font-family:var(--sans);font-size:0.78rem;outline:none" onchange="loadEnquiries()">
+              <option value="">All</option>
+              <option value="new">New</option>
+              <option value="read">Read</option>
+              <option value="replied">Replied</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">📩</span> All Enquiries</div></div>
+            <div class="panel-body" style="padding:0">
+              <table class="cms-table">
+                <thead><tr><th>Name</th><th>School</th><th>Phone / Email</th><th>Product</th><th>Message</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="enquiries-tbody"><tr class="loading-row"><td colspan="8">Loading...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal-card" id="modal-card">
+    <div class="modal-title" id="modal-title">Add Item</div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="modal-confirm" onclick="modalConfirm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURATION — Replace these with your actual Supabase values
+// ═══════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://xglafipwfipuzsokgadj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnbGFmaXB3ZmlwdXpzb2tnYWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTc2MjcsImV4cCI6MjA5Njg3MzYyN30.h90RdNR0BqC4cNffR2RE50E6-oO7wpKqL4niVI5PxJw';
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let modalAction = null;
+let modalData = null;
+
+// Check auth state on load
+db.auth.onAuthStateChange((event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('vendor-email').textContent = currentUser.email;
+    initApp();
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) { errEl.textContent = error.message || 'Invalid credentials. Try again.'; }
+}
+
+async function handleLogout() {
+  await db.auth.signOut();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function showPage(pageId) {
+  document.querySelectorAll('.cms-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + pageId)?.classList.add('active');
+  document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+  // Load data for the page
+  const loaders = {
+    dashboard: loadDashboard,
+    hero: () => loadConfig('hero'),
+    products: loadProducts,
+    features: loadFeatures,
+    testimonials: loadTestimonials,
+    about: () => loadConfig('about'),
+    contact: () => loadConfig('contact'),
+    sections: loadSections,
+    enquiries: loadEnquiries,
+  };
+  loaders[pageId]?.();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════════════════
+async function initApp() {
+  loadDashboard();
+  loadEnquiryBadge();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  // Stats
+  const [enqRes, testRes, featRes, prodRes] = await Promise.all([
+    db.from('enquiries').select('id, status', { count: 'exact' }),
+    db.from('testimonials').select('id', { count: 'exact' }),
+    db.from('features').select('id', { count: 'exact' }),
+    db.from('products').select('id', { count: 'exact' }),
+  ]);
+  document.getElementById('ds-enquiries').textContent = enqRes.count ?? '—';
+  document.getElementById('ds-testimonials').textContent = testRes.count ?? '—';
+  document.getElementById('ds-features').textContent = featRes.count ?? '—';
+  document.getElementById('ds-products').textContent = prodRes.count ?? '—';
+  const newCount = (enqRes.data || []).filter(e => e.status === 'new').length;
+  if (newCount > 0) document.getElementById('ds-new-enq').textContent = `${newCount} new`;
+  // Recent enquiries
+  const { data: enqs } = await db.from('enquiries').select('*').order('created_at', { ascending: false }).limit(5);
+  const tbody = document.getElementById('dash-enquiries-body');
+  if (!enqs?.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--subtle);padding:1.5rem">No enquiries yet.</td></tr>`; return; }
+  tbody.innerHTML = enqs.map(e => `
+    <tr>
+      <td class="white">${esc(e.name)}</td>
+      <td>${esc(e.school)}</td>
+      <td>${esc(e.product || '—')}</td>
+      <td style="white-space:nowrap;font-size:0.72rem">${fmtDate(e.created_at)}</td>
+      <td><span class="status-badge ${e.status}">${e.status}</span></td>
+    </tr>`).join('');
+}
+
+async function loadEnquiryBadge() {
+  const { count } = await db.from('enquiries').select('id', { count: 'exact', head: true }).eq('status', 'new');
+  const badge = document.getElementById('enquiry-badge');
+  if (count > 0) { badge.textContent = count; badge.style.display = 'inline'; }
+  else badge.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIG (Hero, About, Contact)
+// ═══════════════════════════════════════════════════════════════
+async function loadConfig(section) {
+  const { data } = await db.from('site_config').select('*').eq('section', section);
+  (data || []).forEach(row => {
+    const el = document.getElementById('cfg-' + row.key);
+    if (el) el.value = row.value;
+  });
+}
+
+async function saveConfig(section) {
+  const { data } = await db.from('site_config').select('key').eq('section', section);
+  const keys = (data || []).map(r => r.key);
+  const updates = keys.map(key => {
+    const el = document.getElementById('cfg-' + key);
+    return el ? db.from('site_config').update({ value: el.value, updated_at: new Date().toISOString() }).eq('key', key) : null;
+  }).filter(Boolean);
+  await Promise.all(updates);
+  toast('Changes saved successfully.', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCTS
+// ═══════════════════════════════════════════════════════════════
+async function loadProducts() {
+  const { data } = await db.from('products').select('*').order('sort_order');
+  const container = document.getElementById('products-body');
+  if (!data?.length) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><div class="empty-state-text">No products found.</div></div>'; return; }
+  container.innerHTML = data.map(p => `
+    <div class="panel" data-product-id="${p.id}">
+      <div class="panel-head"><div class="panel-title"><span class="panel-title-icon">${p.id === 'rc' ? '📋' : '💻'}</span> ${esc(p.name)}</div></div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field"><label>Product Name</label><input type="text" id="prod-name-${p.id}" value="${esc(p.name)}"/></div>
+          <div class="field"><label>Version</label><input type="text" id="prod-version-${p.id}" value="${esc(p.version)}" style="max-width:120px"/></div>
+        </div>
+        <div class="field"><label>Tagline</label><input type="text" id="prod-tagline-${p.id}" value="${esc(p.tagline)}"/></div>
+        <div class="field"><label>Description</label><textarea id="prod-desc-${p.id}">${esc(p.description)}</textarea></div>
+        <div class="toggle-row" style="border:none;padding-top:0.5rem">
+          <div class="toggle-info"><div class="toggle-label">Visible on website</div></div>
+          <label class="toggle-switch"><input type="checkbox" id="prod-visible-${p.id}" ${p.visible ? 'checked' : ''}/><div class="toggle-track"></div></label>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function saveProducts() {
+  const { data } = await db.from('products').select('id');
+  const updates = (data || []).map(p => db.from('products').update({
+    name: document.getElementById('prod-name-' + p.id)?.value,
+    version: document.getElementById('prod-version-' + p.id)?.value,
+    tagline: document.getElementById('prod-tagline-' + p.id)?.value,
+    description: document.getElementById('prod-desc-' + p.id)?.value,
+    visible: document.getElementById('prod-visible-' + p.id)?.checked,
+    updated_at: new Date().toISOString()
+  }).eq('id', p.id));
+  await Promise.all(updates);
+  toast('Products saved.', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURES
+// ═══════════════════════════════════════════════════════════════
+async function loadFeatures() {
+  const productId = document.getElementById('features-product-select').value;
+  document.getElementById('features-product-label').textContent = productId === 'rc' ? 'Report Card' : 'CBT Platform';
+  const { data } = await db.from('features').select('*').eq('product_id', productId).order('sort_order');
+  const tbody = document.getElementById('features-tbody');
+  if (!data?.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--subtle);padding:2rem">No features yet. Add one above.</td></tr>`; return; }
+  tbody.innerHTML = data.map((f, i) => `
+    <tr>
+      <td style="color:var(--subtle);width:2rem">${i+1}</td>
+      <td class="white">${esc(f.text)}</td>
+      <td><label class="toggle-switch" style="position:relative;display:inline-block"><input type="checkbox" onchange="toggleFeature('${f.id}', this.checked)" ${f.visible ? 'checked' : ''}/><div class="toggle-track"></div></label></td>
+      <td><div class="actions"><button class="btn-icon" onclick="openEditFeatureModal('${f.id}', '${esc(f.text).replace(/'/g,"\\'")}'  )">Edit</button><button class="btn-icon danger" onclick="deleteFeature('${f.id}')">Delete</button></div></td>
+    </tr>`).join('');
+}
+
+async function toggleFeature(id, visible) {
+  await db.from('features').update({ visible, updated_at: new Date().toISOString() }).eq('id', id);
+  toast(visible ? 'Feature shown.' : 'Feature hidden.', 'success');
+}
+
+async function deleteFeature(id) {
+  if (!confirm('Delete this feature?')) return;
+  await db.from('features').delete().eq('id', id);
+  toast('Feature deleted.', 'success');
+  loadFeatures();
+}
+
+function openAddFeatureModal() {
+  openModal('Add Feature', `<div class="field"><label>Feature Text</label><input type="text" id="modal-feature-text" placeholder="e.g. Automated PDF report cards"/></div>`);
+  modalAction = 'add-feature';
+}
+
+function openEditFeatureModal(id, text) {
+  openModal('Edit Feature', `<div class="field"><label>Feature Text</label><input type="text" id="modal-feature-text" value="${text}"/></div>`);
+  modalAction = 'edit-feature';
+  modalData = id;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TESTIMONIALS
+// ═══════════════════════════════════════════════════════════════
+async function loadTestimonials() {
+  const { data } = await db.from('testimonials').select('*').order('sort_order');
+  const tbody = document.getElementById('testimonials-tbody');
+  if (!data?.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--subtle);padding:2rem">No testimonials yet.</td></tr>`; return; }
+  tbody.innerHTML = data.map(t => `
+    <tr>
+      <td class="white">${esc(t.author_name)}<br/><span style="font-size:0.7rem;color:var(--subtle)">${esc(t.author_role)}</span></td>
+      <td>${esc(t.school_name)}</td>
+      <td><span style="font-size:0.7rem;background:rgba(201,168,76,0.1);color:var(--gold);padding:0.1rem 0.4rem;border-radius:3px">${esc(t.product_id || '—')}</span></td>
+      <td style="color:var(--gold)">${'★'.repeat(t.rating)}</td>
+      <td><label class="toggle-switch" style="position:relative;display:inline-block"><input type="checkbox" onchange="toggleTestimonial('${t.id}', this.checked)" ${t.visible ? 'checked' : ''}/><div class="toggle-track"></div></label></td>
+      <td><div class="actions"><button class="btn-icon" onclick="openEditTestimonialModal(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button><button class="btn-icon danger" onclick="deleteTestimonial('${t.id}')">Delete</button></div></td>
+    </tr>`).join('');
+}
+
+async function toggleTestimonial(id, visible) {
+  await db.from('testimonials').update({ visible, updated_at: new Date().toISOString() }).eq('id', id);
+  toast(visible ? 'Testimonial shown.' : 'Testimonial hidden.', 'success');
+}
+
+async function deleteTestimonial(id) {
+  if (!confirm('Delete this testimonial?')) return;
+  await db.from('testimonials').delete().eq('id', id);
+  toast('Testimonial deleted.', 'success');
+  loadTestimonials();
+}
+
+function testimonialForm(t) {
+  return `
+    <div class="field-row"><div class="field"><label>Author Name</label><input type="text" id="t-name" value="${esc(t?.author_name||'')}"/></div><div class="field"><label>Role / Title</label><input type="text" id="t-role" value="${esc(t?.author_role||'')}"/></div></div>
+    <div class="field"><label>School Name</label><input type="text" id="t-school" value="${esc(t?.school_name||'')}"/></div>
+    <div class="field"><label>Testimonial Body</label><textarea id="t-body">${esc(t?.body||'')}</textarea></div>
+    <div class="field-row">
+      <div class="field"><label>Product</label><select id="t-product"><option value="rc" ${t?.product_id==='rc'?'selected':''}>Report Card</option><option value="cbt" ${t?.product_id==='cbt'?'selected':''}>CBT</option></select></div>
+      <div class="field"><label>Rating (1–5)</label><input type="number" id="t-rating" min="1" max="5" value="${t?.rating||5}"/></div>
+    </div>`;
+}
+
+function openAddTestimonialModal() {
+  openModal('Add Testimonial', testimonialForm(null));
+  modalAction = 'add-testimonial';
+}
+
+function openEditTestimonialModal(t) {
+  openModal('Edit Testimonial', testimonialForm(t));
+  modalAction = 'edit-testimonial';
+  modalData = t.id;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SECTIONS VISIBILITY
+// ═══════════════════════════════════════════════════════════════
+async function loadSections() {
+  const { data } = await db.from('sections').select('*').order('sort_order');
+  const container = document.getElementById('sections-toggles');
+  if (!data?.length) { container.innerHTML = '<div style="color:var(--subtle)">No sections found.</div>'; return; }
+  container.innerHTML = data.map(s => `
+    <div class="toggle-row" data-section-id="${s.id}">
+      <div class="toggle-info"><div class="toggle-label">${esc(s.label)}</div><div class="toggle-desc">id: ${s.id}</div></div>
+      <label class="toggle-switch" style="position:relative;display:inline-block"><input type="checkbox" id="sec-${s.id}" ${s.visible ? 'checked' : ''}/><div class="toggle-track"></div></label>
+    </div>`).join('');
+}
+
+async function saveSections() {
+  const { data } = await db.from('sections').select('id');
+  const updates = (data || []).map(s => db.from('sections').update({ visible: document.getElementById('sec-' + s.id)?.checked ?? true, updated_at: new Date().toISOString() }).eq('id', s.id));
+  await Promise.all(updates);
+  toast('Section visibility saved.', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENQUIRIES
+// ═══════════════════════════════════════════════════════════════
+async function loadEnquiries() {
+  const filter = document.getElementById('enq-filter').value;
+  let q = db.from('enquiries').select('*').order('created_at', { ascending: false });
+  if (filter) q = q.eq('status', filter);
+  const { data } = await q;
+  const tbody = document.getElementById('enquiries-tbody');
+  if (!data?.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--subtle);padding:2rem">No enquiries found.</td></tr>`; return; }
+  tbody.innerHTML = data.map(e => `
+    <tr>
+      <td class="white">${esc(e.name)}</td>
+      <td>${esc(e.school)}</td>
+      <td style="font-size:0.72rem">${esc(e.phone || '')}${e.email ? '<br/>'+esc(e.email) : ''}</td>
+      <td>${esc(e.product || '—')}</td>
+      <td style="max-width:180px;font-size:0.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.message||'')}">${esc(e.message ? e.message.substring(0,60) + (e.message.length>60?'…':'') : '—')}</td>
+      <td style="white-space:nowrap;font-size:0.72rem">${fmtDate(e.created_at)}</td>
+      <td><span class="status-badge ${e.status}">${e.status}</span></td>
+      <td>
+        <select style="background:var(--bg3);border:1px solid var(--border2);border-radius:2px;color:var(--muted);font-size:0.68rem;padding:0.2rem 0.3rem" onchange="updateEnquiryStatus('${e.id}', this.value)">
+          <option value="new" ${e.status==='new'?'selected':''}>New</option>
+          <option value="read" ${e.status==='read'?'selected':''}>Read</option>
+          <option value="replied" ${e.status==='replied'?'selected':''}>Replied</option>
+          <option value="archived" ${e.status==='archived'?'selected':''}>Archive</option>
+        </select>
+      </td>
+    </tr>`).join('');
+  loadEnquiryBadge();
+}
+
+async function updateEnquiryStatus(id, status) {
+  await db.from('enquiries').update({ status }).eq('id', id);
+  toast('Status updated.', 'success');
+  loadEnquiryBadge();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════
+function openModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.querySelector('#modal-body input, #modal-body textarea')?.focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  modalAction = null;
+  modalData = null;
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function modalConfirm() {
+  if (modalAction === 'add-feature') {
+    const text = document.getElementById('modal-feature-text')?.value?.trim();
+    if (!text) { toast('Please enter feature text.', 'error'); return; }
+    const productId = document.getElementById('features-product-select').value;
+    const { data: existing } = await db.from('features').select('sort_order').eq('product_id', productId).order('sort_order', { ascending: false }).limit(1);
+    const nextOrder = ((existing?.[0]?.sort_order) ?? 0) + 1;
+    await db.from('features').insert({ product_id: productId, text, visible: true, sort_order: nextOrder });
+    toast('Feature added.', 'success');
+    closeModal();
+    loadFeatures();
+  } else if (modalAction === 'edit-feature') {
+    const text = document.getElementById('modal-feature-text')?.value?.trim();
+    if (!text) { toast('Please enter feature text.', 'error'); return; }
+    await db.from('features').update({ text, updated_at: new Date().toISOString() }).eq('id', modalData);
+    toast('Feature updated.', 'success');
+    closeModal();
+    loadFeatures();
+  } else if (modalAction === 'add-testimonial') {
+    const payload = getTestimonialPayload();
+    if (!payload) return;
+    await db.from('testimonials').insert(payload);
+    toast('Testimonial added.', 'success');
+    closeModal();
+    loadTestimonials();
+  } else if (modalAction === 'edit-testimonial') {
+    const payload = getTestimonialPayload();
+    if (!payload) return;
+    await db.from('testimonials').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', modalData);
+    toast('Testimonial updated.', 'success');
+    closeModal();
+    loadTestimonials();
+  }
+}
+
+function getTestimonialPayload() {
+  const name = document.getElementById('t-name')?.value?.trim();
+  const role = document.getElementById('t-role')?.value?.trim();
+  const school = document.getElementById('t-school')?.value?.trim();
+  const body = document.getElementById('t-body')?.value?.trim();
+  const productId = document.getElementById('t-product')?.value;
+  const rating = parseInt(document.getElementById('t-rating')?.value) || 5;
+  if (!name || !school || !body) { toast('Name, school, and testimonial body are required.', 'error'); return null; }
+  return { author_name: name, author_role: role, school_name: school, body, product_id: productId, rating, visible: true };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function toast(message, type = 'success') {
+  const container = document.getElementById('toast');
+  const item = document.createElement('div');
+  item.className = `toast-item ${type}`;
+  item.innerHTML = (type === 'success' ? '✓ ' : '✗ ') + message;
+  container.appendChild(item);
+  setTimeout(() => item.remove(), 3500);
+}
+
+// Keyboard shortcut: Escape closes modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
