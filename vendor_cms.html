@@ -113,6 +113,22 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .media-card-actions button:hover{color:var(--gold);border-color:var(--gold)}
 .media-card-actions button.danger:hover{color:#e5484d;border-color:#e5484d}
 .media-empty{text-align:center;color:var(--subtle);font-size:0.82rem;padding:2rem 0}
+
+/* ── THEME COLORS ──────────────────────────────────────────────── */
+.theme-group-title{font-size:0.68rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--subtle);margin:1.6rem 0 0.8rem;padding-left:0.2rem}
+.theme-group-title:first-child{margin-top:0}
+.theme-row{display:grid;grid-template-columns:1fr repeat(3,minmax(140px,1fr));gap:1rem;align-items:center;padding:0.8rem 0;border-bottom:1px solid var(--border2)}
+.theme-row:last-child{border-bottom:none}
+.theme-row-label{font-size:0.8rem;color:var(--text)}
+.theme-swatch-group{display:flex;align-items:center;gap:0.4rem}
+.theme-swatch-group input[type="color"]{width:32px;height:32px;padding:0;border:1px solid var(--border2);border-radius:6px;background:none;cursor:pointer;flex-shrink:0}
+.theme-swatch-group input[type="text"]{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.4rem 0.6rem;color:var(--text);font-size:0.72rem;font-family:monospace}
+.theme-clear-btn{font-size:0.62rem;color:var(--subtle);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:0.3rem}
+.theme-clear-btn:hover{color:var(--gold)}
+@media(max-width:900px){
+  .theme-row{grid-template-columns:1fr;gap:0.5rem}
+  .theme-row-label{font-weight:500;margin-bottom:0.2rem}
+}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
 .field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
 
@@ -247,6 +263,10 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
         </div>
         <div class="nav-item" onclick="showPage('gallery')" data-page="gallery">
           <span class="nav-item-icon">🎞️</span> Screenshot Gallery
+        </div>
+        <div class="nav-section-label">Appearance</div>
+        <div class="nav-item" onclick="showPage('theme')" data-page="theme">
+          <span class="nav-item-icon">🎨</span> Theme Colors
         </div>
         <div class="nav-section-label">Visibility</div>
         <div class="nav-item" onclick="showPage('sections')" data-page="sections">
@@ -523,6 +543,24 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
         </div>
       </div>
 
+      <!-- THEME COLORS PAGE -->
+      <div class="cms-page" id="page-theme">
+        <div class="page-header">
+          <div class="page-title">Theme <span>Colors</span></div>
+          <div class="page-actions"><span class="field-hint" style="margin:0">Leave a field blank to use the site's default color for that spot.</span></div>
+        </div>
+        <div class="page-body">
+          <div class="panel">
+            <div class="panel-body" style="display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap">
+              <button class="btn-save" onclick="saveAllThemeColors()">Save All Color Changes</button>
+              <button class="btn-secondary" onclick="loadThemeColors()">Refresh / Discard Unsaved Changes</button>
+              <span id="theme-save-status" class="field-hint" style="margin:0"></span>
+            </div>
+          </div>
+          <div id="theme-groups"></div>
+        </div>
+      </div>
+
       <!-- SECTIONS VISIBILITY PAGE -->
       <div class="cms-page" id="page-sections">
         <div class="page-header">
@@ -653,6 +691,7 @@ function showPage(pageId) {
     contact: () => loadConfig('contact'),
     media: loadMedia,
     gallery: loadGallerySlides,
+    theme: loadThemeColors,
     sections: loadSections,
     enquiries: loadEnquiries,
   };
@@ -1143,6 +1182,131 @@ async function deleteGallerySlide(id) {
   } catch (err) {
     toast('Delete failed — try again.', 'error');
     console.error('deleteGallerySlide error:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THEME COLORS — per-section/panel color overrides (theme_targets table)
+// ═══════════════════════════════════════════════════════════════
+let _themeCache = [];
+
+function isValidHex(v) {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test((v || '').trim());
+}
+
+async function loadThemeColors() {
+  const container = document.getElementById('theme-groups');
+  const status = document.getElementById('theme-save-status');
+  if (!container) return;
+
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    container.innerHTML = '<div class="media-empty">Connect Supabase to customize colors.</div>';
+    return;
+  }
+
+  try {
+    const { data, error } = await db.from('theme_targets').select('*').order('group_name').order('sort_order');
+    if (error) throw error;
+    _themeCache = data || [];
+    status.textContent = '';
+
+    if (!_themeCache.length) {
+      container.innerHTML = '<div class="media-empty">No theme targets found — run EduTrace_Theme_Colors_Setup.sql in Supabase first.</div>';
+      return;
+    }
+
+    const groups = {};
+    _themeCache.forEach(t => { (groups[t.group_name] = groups[t.group_name] || []).push(t); });
+
+    container.innerHTML = Object.entries(groups).map(([groupName, items]) => `
+      <div class="panel">
+        <div class="panel-body">
+          <div class="theme-group-title">${esc(groupName)}</div>
+          ${items.map(t => `
+            <div class="theme-row" data-target-id="${esc(t.id)}">
+              <div class="theme-row-label">${esc(t.label)}</div>
+              ${themeSwatchHTML(t.id, 'bg', 'Background', t.bg_color)}
+              ${themeSwatchHTML(t.id, 'text', 'Text', t.text_color)}
+              ${themeSwatchHTML(t.id, 'accent', 'Accent', t.accent_color)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    wireThemeSwatchInputs();
+  } catch (err) {
+    container.innerHTML = '<div class="media-empty">Couldn\u2019t load theme colors — check the theme_targets table exists.</div>';
+    console.error('loadThemeColors error:', err);
+  }
+}
+
+function themeSwatchHTML(targetId, kind, label, currentValue) {
+  const val = currentValue || '';
+  const colorVal = isValidHex(val) ? val : '#000000';
+  return `
+    <div>
+      <div class="theme-swatch-group">
+        <input type="color" id="theme-${kind}-${targetId}-picker" value="${colorVal}" data-target="${esc(targetId)}" data-kind="${kind}"/>
+        <input type="text" id="theme-${kind}-${targetId}-hex" value="${esc(val)}" placeholder="${label}" maxlength="7" data-target="${esc(targetId)}" data-kind="${kind}"/>
+        ${val ? `<button class="theme-clear-btn" onclick="clearThemeField('${esc(targetId)}','${kind}')">clear</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function wireThemeSwatchInputs() {
+  document.querySelectorAll('.theme-swatch-group input[type="color"]').forEach(picker => {
+    picker.addEventListener('input', () => {
+      const hexInput = document.getElementById(`theme-${picker.dataset.kind}-${picker.dataset.target}-hex`);
+      if (hexInput) hexInput.value = picker.value;
+    });
+  });
+  document.querySelectorAll('.theme-swatch-group input[type="text"]').forEach(hexInput => {
+    hexInput.addEventListener('input', () => {
+      if (isValidHex(hexInput.value)) {
+        const picker = document.getElementById(`theme-${hexInput.dataset.kind}-${hexInput.dataset.target}-picker`);
+        if (picker) picker.value = hexInput.value;
+      }
+    });
+  });
+}
+
+function clearThemeField(targetId, kind) {
+  const hexInput = document.getElementById(`theme-${kind}-${targetId}-hex`);
+  if (hexInput) hexInput.value = '';
+  saveAllThemeColors();
+}
+
+async function saveAllThemeColors() {
+  const status = document.getElementById('theme-save-status');
+  status.textContent = 'Saving\u2026';
+
+  // Validate every non-empty hex field first — stop before saving anything if one is bad.
+  const badFields = [];
+  document.querySelectorAll('.theme-swatch-group input[type="text"]').forEach(inp => {
+    if (inp.value.trim() && !isValidHex(inp.value)) badFields.push(inp.value);
+  });
+  if (badFields.length) {
+    status.textContent = `Fix invalid color code: "${badFields[0]}" (use format #rrggbb)`;
+    return;
+  }
+
+  try {
+    const updates = _themeCache.map(t => {
+      const bg     = document.getElementById(`theme-bg-${t.id}-hex`)?.value.trim() || null;
+      const text   = document.getElementById(`theme-text-${t.id}-hex`)?.value.trim() || null;
+      const accent = document.getElementById(`theme-accent-${t.id}-hex`)?.value.trim() || null;
+      return db.from('theme_targets').update({
+        bg_color: bg, text_color: text, accent_color: accent, updated_at: new Date().toISOString()
+      }).eq('id', t.id);
+    });
+    await Promise.all(updates);
+    status.textContent = 'Saved! Refresh your website to see the changes.';
+    toast('Theme colors saved.', 'success');
+    loadThemeColors();
+  } catch (err) {
+    status.textContent = 'Save failed — try again.';
+    console.error('saveAllThemeColors error:', err);
   }
 }
 
