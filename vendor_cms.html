@@ -781,8 +781,18 @@ async function loadProducts() {
           <div class="field"><label>Product Name</label><input type="text" id="prod-name-${p.id}" value="${esc(p.name)}"/></div>
           <div class="field"><label>Version</label><input type="text" id="prod-version-${p.id}" value="${esc(p.version)}" style="max-width:120px"/></div>
         </div>
+        <div class="field">
+          <label>Short Name</label>
+          <input type="text" id="prod-shortname-${p.id}" value="${esc(p.short_name || '')}"/>
+          <div class="field-hint">Used in shorter spots on the site (feature-demo headings, badges) where the full name would be too long.</div>
+        </div>
         <div class="field"><label>Tagline</label><input type="text" id="prod-tagline-${p.id}" value="${esc(p.tagline)}"/></div>
         <div class="field"><label>Description</label><textarea id="prod-desc-${p.id}">${esc(p.description)}</textarea></div>
+        <div class="field">
+          <label>Alternate Names / Aliases</label>
+          <input type="text" id="prod-aliases-${p.id}" value="${esc(p.aliases || '')}" placeholder="Comma-separated — e.g. EduTrace School Manager, Report Card System"/>
+          <div class="field-hint">Not shown on the site yet — saved for future use (e.g. a chatbot trained to recognize what customers call this product).</div>
+        </div>
         <div class="toggle-row" style="border:none;padding-top:0.5rem">
           <div class="toggle-info"><div class="toggle-label">Visible on website</div></div>
           <label class="toggle-switch"><input type="checkbox" id="prod-visible-${p.id}" ${p.visible ? 'checked' : ''}/><div class="toggle-track"></div></label>
@@ -795,9 +805,11 @@ async function saveProducts() {
   const { data } = await db.from('products').select('id');
   const updates = (data || []).map(p => db.from('products').update({
     name: document.getElementById('prod-name-' + p.id)?.value,
+    short_name: document.getElementById('prod-shortname-' + p.id)?.value,
     version: document.getElementById('prod-version-' + p.id)?.value,
     tagline: document.getElementById('prod-tagline-' + p.id)?.value,
     description: document.getElementById('prod-desc-' + p.id)?.value,
+    aliases: document.getElementById('prod-aliases-' + p.id)?.value,
     visible: document.getElementById('prod-visible-' + p.id)?.checked,
     updated_at: new Date().toISOString()
   }).eq('id', p.id));
