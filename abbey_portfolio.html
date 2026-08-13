@@ -4,7 +4,7 @@
 <head>
 <!-- ═══════════════════════════════════════════════════════════════════
      EDUTRACE PORTFOLIO  |  Salako Najeem A. (Abbey)
-     Version : 2.2  |  Future-ready company architecture
+     Version : 2.3  |  Future-ready company architecture
      Stack   : Vanilla HTML/CSS/JS + optional Supabase CMS — deploy anywhere
      Extend  : Edit PORTFOLIO_DATA{} in the <script> section to add new
                products, skills, testimonials, or pricing tiers without
@@ -25,7 +25,7 @@
 <!-- GitHub Pages cannot set response headers; this meta policy is a baseline only.
      For production, enforce the same policy with HTTP response headers on a custom domain.
      Supabase is intentionally the only browser-side data service. n8n is server-to-server. -->
-<meta content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://*.supabase.in https://n8n-1-4iqp.onrender.com; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
+<meta content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://*.supabase.in https://edutrace-n8n.onrender.com; upgrade-insecure-requests" http-equiv="Content-Security-Policy"/>
 <meta content="nosniff" http-equiv="X-Content-Type-Options"/>
 <meta content="DENY" http-equiv="X-Frame-Options"/>
 <meta content="same-origin" name="Cross-Origin-Opener-Policy"/>
@@ -730,10 +730,84 @@ section[id], .demo-row[id]{scroll-margin-top:84px}
 </style>
 
 <!-- ── EDUTRACE AI ASSISTANT: n8n embedded chat ─────────────────── -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@n8n/chat@1.31.0/dist/style.css"/>
 <style id="edutrace-ai-chat-branding">
-:root { --edutrace-chat-gold: #c9a84c; }
-.n8n-chat { --chat--color-primary: var(--edutrace-chat-gold); --chat--color-primary-shade-50: #b8963f; --chat--color-primary-shade-100: #a98738; --chat--color-secondary: #13141a; --chat--color-dark: #0b0c10; }
+/*
+   EduTrace AI Assistant — deliberately high-contrast emerald launcher.
+   Both the current and legacy n8n variable names are supplied so the
+   widget remains visually stable across @n8n/chat releases.
+*/
+:root {
+  --edutrace-chat-green: #006b45;
+  --edutrace-chat-green-hover: #00583a;
+  --edutrace-chat-green-active: #00472f;
+}
+.n8n-chat {
+  /* Current @n8n/chat tokens */
+  --chat--color--primary: var(--edutrace-chat-green);
+  --chat--color--primary-shade-50: var(--edutrace-chat-green-hover);
+  --chat--color--primary-shade-100: var(--edutrace-chat-green-active);
+  --chat--color--secondary: #12372a;
+  --chat--color--dark: #0b0c10;
+  --chat--color--light: #f4f7f5;
+  --chat--color--white: #ffffff;
+  --chat--window--z-index: 2147483000;
+  --chat--window--width: min(400px, calc(100vw - 28px));
+  --chat--window--height: min(620px, calc(100vh - 110px));
+  --chat--window--bottom: 18px;
+  --chat--window--right: 18px;
+  --chat--toggle--width: 184px;
+  --chat--toggle--height: 56px;
+  --chat--toggle--size: 56px;
+  --chat--toggle--border-radius: 999px;
+  --chat--toggle--background: var(--edutrace-chat-green);
+  --chat--toggle--hover--background: var(--edutrace-chat-green-hover);
+  --chat--toggle--active--background: var(--edutrace-chat-green-active);
+  --chat--toggle--color: #ffffff;
+  /* Legacy @n8n/chat tokens */
+  --chat--color-primary: var(--edutrace-chat-green);
+  --chat--color-primary-shade-50: var(--edutrace-chat-green-hover);
+  --chat--color-primary-shade-100: var(--edutrace-chat-green-active);
+  --chat--color-secondary: #12372a;
+  --chat--color-dark: #0b0c10;
+}
+/* Protect the widget from the site's broad reset and keep the launcher above page UI. */
+#n8n-chat,
+#n8n-chat * { box-sizing: border-box; }
+#n8n-chat { position: relative; z-index: 2147483000; }
+#n8n-chat .edutrace-chat-launcher {
+  width: 184px !important;
+  min-width: 184px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  border-radius: 999px !important;
+  background: var(--edutrace-chat-green) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.35) !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+}
+#n8n-chat .edutrace-chat-launcher:hover { background: var(--edutrace-chat-green-hover) !important; }
+#n8n-chat .edutrace-chat-launcher::after {
+  content: 'EduTrace Support';
+  display: inline-block;
+  margin-left: 9px;
+  font: 500 14px/1.1 var(--sans, system-ui, sans-serif);
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .n8n-chat {
+    --chat--window--right: 10px;
+    --chat--window--bottom: 10px;
+    --chat--window--width: calc(100vw - 20px);
+    --chat--window--height: calc(100vh - 90px);
+    --chat--toggle--width: 174px;
+  }
+  #n8n-chat .edutrace-chat-launcher {
+    width: 174px !important;
+    min-width: 174px !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -3502,17 +3576,63 @@ window.EduTraceDB = function() {
   var script = document.createElement('script');
   script.type = 'module';
   script.textContent = `
-    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat@1.31.0/dist/chat.bundle.es.js';
 
     createChat({
       webhookUrl: 'https://edutrace-n8n.onrender.com/webhook/fabafa3b-bb8c-4e1b-9077-917db52cd4ce/chat',
+      webhookConfig: {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      },
+      target: '#n8n-chat',
       mode: 'window',
+      chatInputKey: 'chatInput',
+      chatSessionKey: 'sessionId',
       showWelcomeScreen: false,
+      defaultLanguage: 'en',
       initialMessages: [
         'Hello! 👋',
         'I’m the EduTrace Assistant. How can I help you today?'
-      ]
+      ],
+      i18n: {
+        en: {
+          title: 'EduTrace Assistant',
+          subtitle: 'Ask about EduTrace products, features or getting started.',
+          footer: 'EduTrace Technologies',
+          getStarted: 'Start a new conversation',
+          inputPlaceholder: 'Type your question here…'
+        }
+      }
     });
+
+    /*
+       Add the branded text label to n8n's native launcher without replacing
+       its click handler. MutationObserver is used because @n8n/chat mounts
+       its DOM asynchronously after createChat().
+    */
+    const brandLauncher = () => {
+      const root = document.querySelector('#n8n-chat');
+      if (!root) return false;
+      const buttons = root.querySelectorAll('button');
+      for (const button of buttons) {
+        const cls = String(button.className || '').toLowerCase();
+        const label = String(button.getAttribute('aria-label') || '').toLowerCase();
+        const title = String(button.getAttribute('title') || '').toLowerCase();
+        if (cls.includes('toggle') || label.includes('chat') || title.includes('chat')) {
+          button.classList.add('edutrace-chat-launcher');
+          button.setAttribute('aria-label', 'Open EduTrace Support chat');
+          button.setAttribute('title', 'EduTrace Support');
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const launcherObserver = new MutationObserver(() => {
+      if (brandLauncher()) launcherObserver.disconnect();
+    });
+    launcherObserver.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => { brandLauncher(); launcherObserver.disconnect(); }, 10000);
   `;
   document.body.appendChild(script);
 })();
